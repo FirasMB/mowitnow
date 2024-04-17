@@ -16,7 +16,6 @@ import java.util.Scanner;
 @Component
 public class MowitnowProcessor implements ItemProcessor<File, List<String>> {
 
-	protected static List<String> listResultats;
 
 	@Override
 	public List<String> process(File fichier) throws Exception {
@@ -108,7 +107,7 @@ public class MowitnowProcessor implements ItemProcessor<File, List<String>> {
 			traitement.setListeInstruction(FormaterLigne
 					.formaterLigneInstruction(parser.getInstructions()));
 			traitement.executerInstructions();
-			System.out.println(traitement);
+			// System.out.println(traitement);
 			return traitement.toString();
 		}
 	}

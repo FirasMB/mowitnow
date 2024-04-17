@@ -22,7 +22,6 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import javax.sound.sampled.Line;
 import javax.sql.DataSource;
 import java.io.File;
 import java.util.List;
@@ -65,13 +64,9 @@ public class BatchConfiguration {
 
     @Bean
     public ItemWriter<List<String>> itemWriter() {
-        // Define your item writer logic here
         return items -> {
             for (List<String> item : items) {
-                // Process each item, e.g., write to a file or database
-                for (String element : item) {
-                    System.out.println("Writing item: " + element);
-                }
+                System.out.println("result: " + item);
             }
         };
     }
@@ -81,7 +76,7 @@ public class BatchConfiguration {
     @Bean(name = "processInstructionsStep")
     public Step processInstructionsStep(JobRepository jobRepository, PlatformTransactionManager transactionManager) throws Exception {
         return new StepBuilder("processInstructionsStep", jobRepository)
-                .<File, List<String>>chunk(10, transactionManager)
+                .<File, List<String>>chunk(1, transactionManager)
                 .reader(itemReader())
                 .processor(processor())
                 .writer(itemWriter())
