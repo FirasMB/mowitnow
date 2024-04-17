@@ -7,32 +7,43 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import javax.sound.sampled.Line;
 import javax.sql.DataSource;
 import java.io.File;
+import java.util.List;
 
 @Configuration
 public class BatchConfiguration {
 
     final String CHEMIN_FICHIER = "./src/main/resources/fichier_xebia.txt";
 
-    @Bean
-    public MowitnowProcessor processor() {
+    public ItemProcessor<File, List<String>> processor() {
         return new MowitnowProcessor();
     }
 
+    @Bean
+    public DataSource dataSource() {
+        EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
+        return builder.setType(EmbeddedDatabaseType.H2)
+                .addScript("classpath:org/springframework/batch/core/schema-drop-h2.sql")
+                .addScript("classpath:org/springframework/batch/core/schema-h2.sql")
+                .build();
+    }
 
     @Bean
     @Conditional(ExecuteBatchCondition.class) // Conditional on property value
@@ -44,32 +55,36 @@ public class BatchConfiguration {
     }
 
     @Bean
-    public FlatFileItemReader<String> itemReader() {
-        return new FlatFileItemReaderBuilder<String>()
+    public FlatFileItemReader<File> itemReader() {
+        return new FlatFileItemReaderBuilder<File>()
                 .name("instructionItemReader")
-                .resource(new FileSystemResource(new File("input.txt")))
-                .lineMapper((line, lineNumber) -> line) // Simple line mapper
+                .resource(new FileSystemResource(new File(CHEMIN_FICHIER)))
+                .lineMapper((line, lineNumber) -> new File(CHEMIN_FICHIER)) // Use a PassThroughLineTokenizer to directly map lines to File objects // Dummy line mapper since we're not actually using the lines
                 .build();
     }
 
-    /*@Bean
-    public ItemWriter<? super String> itemWriter() {
+    @Bean
+    public ItemWriter<List<String>> itemWriter() {
         // Define your item writer logic here
         return items -> {
-            for (String item : items) {
+            for (List<String> item : items) {
                 // Process each item, e.g., write to a file or database
-                System.out.println("Writing item: " + item);
+                for (String element : item) {
+                    System.out.println("Writing item: " + element);
+                }
             }
         };
-    }*/
+    }
 
 
 
-    @Bean
+    @Bean(name = "processInstructionsStep")
     public Step processInstructionsStep(JobRepository jobRepository, PlatformTransactionManager transactionManager) throws Exception {
         return new StepBuilder("processInstructionsStep", jobRepository)
-                .<String, String>chunk(10, transactionManager)
-                .processor((ItemProcessor<? super String, ? extends String>) processor().process(new File(CHEMIN_FICHIER)))
+                .<File, List<String>>chunk(10, transactionManager)
+                .reader(itemReader())
+                .processor(processor())
+                .writer(itemWriter())
                 .taskExecutor(taskExecutor())
                 .build();
     }

@@ -1,5 +1,6 @@
 package com.project.mowitnow;
 
+
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.launch.JobLauncher;
@@ -9,6 +10,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
+@EnableBatchProcessing
 @ComponentScan(basePackages = "com.project.mowitnow")
 public class MowitnowApplication {
     /*public static void main(String[] args) {
@@ -34,5 +36,6 @@ public class MowitnowApplication {
     }*/
     public static void main(String[] args) {
         SpringApplication.run(MowitnowApplication.class, args);
+        //System.exit(SpringApplication.exit(SpringApplication.run(MowitnowApplication.class, args)));
     }
 }
